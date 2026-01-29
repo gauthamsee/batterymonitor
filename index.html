@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Battery Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 1.1em;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            color: #666;
+        }
+        .metric-value {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+        #soc-bar {
+            width: 100%;
+            height: 50px;
+            background: #e0e0e0;
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        #soc-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.3em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+        .status-charging {
+            background: #4caf50;
+            color: white;
+        }
+        .status-discharging {
+            background: #ff9800;
+            color: white;
+        }
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .api-info {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .api-info code {
+            background: #f8f9fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔋 Battery Monitor</h1>
+        
+        <div class="card">
+            <div class="api-info">
+                <strong>⚠️ Setup Required:</strong> This page fetches data from an API endpoint.
+                <br><br>
+                <strong>Your ESP32 should POST data to:</strong>
+                <br>
+                <code id="api-endpoint">Loading...</code>
+                <br><br>
+                Or use a backend service like <a href="#backend-options">Vercel/Railway</a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>State of Charge</h2>
+            <div id="soc-bar">
+                <div id="soc-fill">---%</div>
+            </div>
+            <div style="text-align: center;">
+                <span class="status-badge status-discharging" id="status-badge">Waiting for data...</span>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>⚡ Electrical</h2>
+                <div class="metric">
+                    <span class="metric-label">Voltage:</span>
+                    <span class="metric-value" id="voltage">-- V</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Current:</span>
+                    <span class="metric-value" id="current">-- mA</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Remaining:</span>
+                    <span class="metric-value" id="remaining">-- mAh</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 Information</h2>
+                <div class="metric">
+                    <span class="metric-label">Temperature:</span>
+                    <span class="metric-value" id="temperature">-- °C</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Cycle Count:</span>
+                    <span class="metric-value" id="cycles">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Time to Empty:</span>
+                    <span class="metric-value" id="timeToEmpty">--</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Last updated: <span id="lastUpdate">--</span><br>
+            <small>ESP32 Battery Monitor • GitHub Pages</small>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Change this to your API endpoint
+        const API_ENDPOINT = 'https://your-api-endpoint.com/api/battery';
+        
+        // For demo purposes, we'll use localStorage to simulate data
+        const USE_DEMO_MODE = true;
+        
+        document.getElementById('api-endpoint').textContent = API_ENDPOINT;
+        
+        function updateBatteryData() {
+            if (USE_DEMO_MODE) {
+                // Demo mode - simulate data
+                const demoData = {
+                    voltage: (3.7 + Math.random() * 0.5).toFixed(2),
+                    soc: Math.floor(50 + Math.random() * 40),
+                    current: Math.floor(-800 + Math.random() * 400),
+                    temperature: (25 + Math.random() * 5).toFixed(1),
+                    cycleCount: 42,
+                    remainingCapacity: 2250,
+                    timeToEmpty: 270,
+                    status: Math.random() > 0.5 ? 'Charging' : 'Discharging'
+                };
+                displayData(demoData);
+            } else {
+                // Real mode - fetch from API
+                fetch(API_ENDPOINT)
+                    .then(response => response.json())
+                    .then(data => displayData(data))
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                        document.getElementById('status-badge').textContent = 'API Error';
+                        document.getElementById('status-badge').className = 'status-badge';
+                        document.getElementById('status-badge').style.background = '#f44336';
+                    });
+            }
+        }
+        
+        function displayData(data) {
+            document.getElementById('voltage').textContent = parseFloat(data.voltage).toFixed(2) + ' V';
+            document.getElementById('current').textContent = parseFloat(data.current).toFixed(0) + ' mA';
+            document.getElementById('temperature').textContent = parseFloat(data.temperature).toFixed(1) + ' °C';
+            document.getElementById('cycles').textContent = data.cycleCount || '--';
+            document.getElementById('remaining').textContent = (data.remainingCapacity || 0).toFixed(0) + ' mAh';
+            
+            // Time to empty
+            if (data.timeToEmpty && data.timeToEmpty > 0) {
+                const hours = Math.floor(data.timeToEmpty / 60);
+                const mins = data.timeToEmpty % 60;
+                document.getElementById('timeToEmpty').textContent = hours + 'h ' + mins + 'm';
+            } else {
+                document.getElementById('timeToEmpty').textContent = '--';
+            }
+            
+            // Update SOC bar
+            const soc = parseInt(data.soc) || 0;
+            const socFill = document.getElementById('soc-fill');
+            socFill.style.width = soc + '%';
+            socFill.textContent = soc + '%';
+            
+            // Color based on SOC
+            if (soc < 20) {
+                socFill.style.background = 'linear-gradient(90deg, #f44336, #e91e63)';
+            } else if (soc < 50) {
+                socFill.style.background = 'linear-gradient(90deg, #ff9800, #ffc107)';
+            } else {
+                socFill.style.background = 'linear-gradient(90deg, #4caf50, #8bc34a)';
+            }
+            
+            // Update status badge
+            const badge = document.getElementById('status-badge');
+            badge.textContent = data.status || 'Unknown';
+            badge.className = 'status-badge';
+            
+            if (data.status === 'Charging') {
+                badge.classList.add('status-charging');
+            } else if (data.status === 'Discharging') {
+                badge.classList.add('status-discharging');
+            }
+            
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+        
+        // Update every 2 seconds
+        setInterval(updateBatteryData, 2000);
+        updateBatteryData();
+    </script>
+</body>
+</html>
